@@ -61,10 +61,14 @@ jobs:
           GLADOS_COOKIE: ${{ secrets.GLADOS_COOKIE }}
           # Must match the browser that created the current gld:sess.
           # Prefer the repository Variable; accept a same-named Secret for compatibility.
+          BARK_SERVER: ${{ vars.BARK_SERVER || secrets.BARK_SERVER }}
+          BARK_AES_KEY: ${{ secrets.BARK_AES_KEY }}
+          BARK_AES_IV: ${{ secrets.BARK_AES_IV }}
           GLADOS_USER_AGENT: ${{ vars.GLADOS_USER_AGENT || secrets.GLADOS_USER_AGENT }}
           CHECKIN_DIAGNOSTIC_ONLY: ${{ inputs.diagnose_only && 'true' || 'false' }}
           CHECKIN_NOTIFY_STATUS_ONLY: ${{ inputs.notify_status_only && 'true' || 'false' }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          BARK_TOKEN: ${{ secrets.BARK_TOKEN }}
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
