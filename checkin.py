@@ -977,11 +977,12 @@ def notify_status_accounts(cookies):
         ))
 
     ptoken = os.environ.get("PUSHPLUS_TOKEN")
+    batoken = os.environ.get("BARK_TOKEN", "").strip()
     serverchan_sendkey = os.environ.get("SERVERCHAN_SENDKEY", "").strip()
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
-    if not (ptoken or bark or serverchan_sendkey or (tg_token and tg_chat_id)):
+    if not (ptoken or batoken or serverchan_sendkey or (tg_token and tg_chat_id)):
         log("⚠️ 未配置任何通知渠道（PUSHPLUS_TOKEN / SERVERCHAN_SENDKEY / TELEGRAM），无法发送状态推送")
         return 1
 
@@ -994,6 +995,8 @@ def notify_status_accounts(cookies):
     push_ok = True
     if ptoken:
         push_ok = pushplus(ptoken, title, content) and push_ok
+    if batoken:
+        bark_ok = bark(title, content) and push_ok
     if serverchan_sendkey:
         push_ok = serverchan_push(serverchan_sendkey, title, content) and push_ok
     if tg_token and tg_chat_id:
