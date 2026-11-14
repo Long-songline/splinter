@@ -56,9 +56,9 @@ class PointsHistoryTests(unittest.TestCase):
             with mock.patch('checkin.beijing_now', return_value=FIXED_NOW), \
                     mock.patch.dict(os.environ, {'GLADOS_COOKIE': COOKIE,
                     'EXCHANGE_PLAN': 'off', 'CHECKIN_MAX_ATTEMPTS': '1',
-                    'BARK_TOKEN': 'fake-token', 'PUSH_LEVEL': 'always'}, clear=True), \
+                    'PUSHPLUS_TOKEN': 'fake-token', 'PUSH_LEVEL': 'always'}, clear=True), \
                     mock.patch('checkin.GLaDOS', return_value=client), \
-                    mock.patch('checkin.bark') as push, \
+                    mock.patch('checkin.pushplus') as push, \
                     mock.patch('checkin.log'), \
                     mock.patch('requests.sessions.Session.request', side_effect=AssertionError('No network')):
                 self.assertEqual(checkin.main(), expected_exit)
@@ -88,11 +88,11 @@ class PointsHistoryTests(unittest.TestCase):
                     'GLADOS_COOKIE': COOKIE,
                     'EXCHANGE_PLAN': 'plan500',
                     'CHECKIN_MAX_ATTEMPTS': '3',
-                    'BARK_TOKEN': 'fake-token',
+                    'PUSHPLUS_TOKEN': 'fake-token',
                     'PUSH_LEVEL': 'fail_only',
                 }, clear=True), \
                 mock.patch('checkin.GLaDOS', return_value=client), \
-                mock.patch('checkin.bark') as push, \
+                mock.patch('checkin.pushplus') as push, \
                 mock.patch('checkin.log'):
             self.assertEqual(checkin.main(), 1)
 
@@ -173,11 +173,11 @@ class PointsHistoryTests(unittest.TestCase):
                     'GLADOS_COOKIE': COOKIE,
                     'EXCHANGE_PLAN': 'plan500',
                     'CHECKIN_MAX_ATTEMPTS': '1',
-                    'BARK_TOKEN': 'fake-token',
+                    'PUSHPLUS_TOKEN': 'fake-token',
                     'PUSH_LEVEL': 'fail_only',
                 }, clear=True), \
                 mock.patch('checkin.GLaDOS', return_value=client), \
-                mock.patch('checkin.bark') as push, \
+                mock.patch('checkin.pushplus') as push, \
                 mock.patch('checkin.log'):
             self.assertEqual(checkin.main(), 0)
 
@@ -204,10 +204,10 @@ class PointsHistoryTests(unittest.TestCase):
                     'CHECKIN_NOTIFY_STATUS_ONLY': 'true',
                     'EXCHANGE_PLAN': 'plan500',
                     'PUSH_LEVEL': 'fail_only',
-                    'BARK_TOKEN': 'fake-token',
+                    'PUSHPLUS_TOKEN': 'fake-token',
                 }, clear=True), \
                 mock.patch('checkin.GLaDOS', return_value=client), \
-                mock.patch('checkin.bark', return_value=True) as push, \
+                mock.patch('checkin.pushplus', return_value=True) as push, \
                 mock.patch('checkin.log') as log_mock, \
                 mock.patch('requests.sessions.Session.request', side_effect=AssertionError('No network')):
             self.assertEqual(checkin.main(), 0)
@@ -242,5 +242,3 @@ class PointsHistoryTests(unittest.TestCase):
                 mock.patch('checkin.GLaDOS', return_value=client), \
                 mock.patch('checkin.log'):
             self.assertEqual(checkin.main(), 1)
-
-
