@@ -12,6 +12,7 @@
 - 支持 Cookie-Editor 导出格式
 """
 
+import base64
 import html
 import hashlib
 import json
@@ -22,6 +23,9 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+
 
 import requests
 
@@ -824,6 +828,59 @@ def telegram_push(token, chat_id, title, content):
         log(f"❌ Telegram 推送失败: {e}")
         return False
 
+def html_to_text(text):
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</(p|div|tr|h[1-6])>", "\n", text)
+    text = re.sub(r"(?i)<li[^>]*>", "• ", text)
+    text = re.sub(r"(?i)</li>", "\n", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html.unescape(text).replace("\xa0", " ")
+
+    cleaned = []
+    for line in text.splitlines():
+        line = re.sub(r"[ \t]+", " ", line).strip()
+        if line or (cleaned and cleaned[-1]):
+            cleaned.append(line)
+    return "\n".join(cleaned).strip()
+
+def bark(title, body):
+    device_key = os.environ.get("BARK_TOKEN", "").strip()
+    if not device_key:
+        return False
+
+    server = os.environ.get("BARK_SERVER", "https://api.day.app").strip().rstrip("/")
+    aes_key = os.environ.get("BARK_AES_KEY", "").strip()
+    aes_iv = os.environ.get("BARK_AES_IV", "").strip()
+
+    # 推送正文要求纯文本，去掉 checkin.py 里生成的 HTML 标签
+    plain_body = html_to_text(body)
+    payload = {"title": title, "body": plain_body}
+    url = f"{server}/{device_key}"
+
+    try:
+        if aes_key:
+            if len(aes_key) not in (16, 24, 32) or len(aes_iv) != 16:
+                log("❌ Bark 加密配置错误：KEY 需为 16/24/32 位，IV 需为 16 位")
+                return False
+            cipher = AES.new(aes_key.encode(), AES.MODE_CBC, aes_iv.encode())
+            raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            encrypted = cipher.encrypt(pad(raw, AES.block_size))
+            data = {
+                "ciphertext": base64.b64encode(encrypted).decode(),
+                "iv": aes_iv,
+            }
+            resp = requests.post(url, data=data, timeout=10)
+        else:
+            resp = requests.post(url, json=payload, timeout=10)
+
+        resp.raise_for_status()
+        log("✅ Bark 推送成功")
+        return True
+    except requests.RequestException as e:
+        # 异常信息可能包含带 Key 的 URL，只记录异常类型
+        log(f"❌ Bark 推送失败: {type(e).__name__}")
+        return False
+
 def summarize_readonly_ledger(client, status_ok, points_ok):
     """Describe ledger observations in read-only mode without sending a check-in."""
     if not status_ok:
@@ -1061,11 +1118,12 @@ def main():
         return 0
 
     ptoken = os.environ.get("PUSHPLUS_TOKEN")
+    batoken = os.environ.get("BARK_TOKEN", "").strip()
     serverchan_sendkey = os.environ.get("SERVERCHAN_SENDKEY", "").strip()
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     
-    if ptoken or serverchan_sendkey or (tg_token and tg_chat_id):
+    if ptoken or batoken or serverchan_sendkey or (tg_token and tg_chat_id):
         outcome = '本次运行成功' if success_cnt == len(cookies) else '本次运行失败'
         title = f"GLaDOS签到: {outcome} {success_cnt}/{len(cookies)}"
         content = "".join(results)
@@ -1075,6 +1133,8 @@ def main():
         
         if ptoken:
             pushplus(ptoken, title, content)
+        if batoken:
+            bark(title, content)
         if serverchan_sendkey:
             serverchan_push(serverchan_sendkey, title, content)
         if tg_token and tg_chat_id:
